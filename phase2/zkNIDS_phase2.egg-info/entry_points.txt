@@ -1,0 +1,3 @@
+[console_scripts]
+phase2-detector = zkNIDS_phase2.__main__:main
+

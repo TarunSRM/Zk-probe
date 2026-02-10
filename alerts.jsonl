@@ -1,0 +1,29 @@
+[0;32m=== zkNIDS Full Pipeline ===[0m
+[0;34mPhase 1 → Phase 2[0m
+
+[0;32m=== Phase 2 Detector ===[0m
+Project root: /home/ubuntu/projects/zkNIDS
+Config: /home/ubuntu/projects/zkNIDS/phase2/config/invariants.yaml
+
+Auto-detected interface: ens33
+[0;32m=== Phase 1 Loader ===[0m
+Project root: /home/ubuntu/projects/zkNIDS
+Interface: ens33
+BPF directory: /home/ubuntu/projects/zkNIDS/phase1/build/bpf
+Snapshot interval: 1s
+
+Phase-1 invariant collector running (phase1-v0.1.0)
+Interface: ens33 (ifindex=2)
+Snapshot interval: 1 second(s)
+Press Ctrl+C to stop
+----------------------------------------
+Phase 2 Local Detection & Invariants Engine
+Reading Phase 1 snapshots from stdin...
+----------------------------------------
+
+Shutting down gracefully...
+
+----------------------------------------
+Snapshots processed: 1873
+Alerts generated: 0
+Errors: 0

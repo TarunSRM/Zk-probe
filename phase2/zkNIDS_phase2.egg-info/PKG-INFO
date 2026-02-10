@@ -1,0 +1,26 @@
+Metadata-Version: 2.1
+Name: zkNIDS-phase2
+Version: 0.1.0
+Summary: zkNIDS Phase 2 - Local Detection & Invariants Engine
+Home-page: UNKNOWN
+Author: zkNIDS Project
+License: UNKNOWN
+Project-URL: Source, https://github.com/zkNIDS/zkNIDS
+Project-URL: Documentation, https://zkNIDS.readthedocs.io
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: System Administrators
+Classifier: Intended Audience :: Information Technology
+Classifier: Topic :: Security
+Classifier: Topic :: System :: Monitoring
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Provides-Extra: dev
+
+UNKNOWN
+

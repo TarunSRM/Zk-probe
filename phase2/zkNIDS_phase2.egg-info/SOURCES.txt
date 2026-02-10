@@ -1,0 +1,13 @@
+setup.py
+zkNIDS_phase2/__init__.py
+zkNIDS_phase2/__main__.py
+zkNIDS_phase2/alert_generator.py
+zkNIDS_phase2/invariant_engine.py
+zkNIDS_phase2/parser.py
+zkNIDS_phase2/state_manager.py
+zkNIDS_phase2.egg-info/PKG-INFO
+zkNIDS_phase2.egg-info/SOURCES.txt
+zkNIDS_phase2.egg-info/dependency_links.txt
+zkNIDS_phase2.egg-info/entry_points.txt
+zkNIDS_phase2.egg-info/requires.txt
+zkNIDS_phase2.egg-info/top_level.txt

@@ -1,0 +1,103 @@
+# Phase 2 Invariant Configuration
+# This file defines detection rules for the Phase 2 engine
+
+invariants:
+  # Rate-based invariants
+  - id: execve_rate_high
+    type: rate_threshold
+    category: rate_based
+    description: "Process creation rate exceeds threshold"
+    metric: execve_count
+    threshold: 100.0
+    operator: greater_than
+    severity: high
+    enabled: true
+    notes: |
+      Detects abnormal process creation rate which may indicate:
+      - Malware spreading
+      - Scanning activity
+      - System compromise
+  
+  - id: packet_rate_high
+    type: rate_threshold
+    category: rate_based
+    description: "Packet rate exceeds threshold"
+    metric: total_packets
+    threshold: 10000.0
+    operator: greater_than
+    severity: medium
+    enabled: false
+    notes: "Basic packet rate threshold - tune based on environment"
+  
+  # Protocol-based invariants
+  - id: syn_flood_detection
+    type: ratio_threshold
+    category: protocol
+    description: "SYN packet ratio indicates potential SYN flood"
+    numerator: syn_packets
+    denominator: total_packets
+    threshold: 0.2
+    operator: greater_than
+    severity: critical
+    enabled: true
+    notes: |
+      Detects SYN flood attacks by monitoring the ratio of SYN packets
+      to total packets. High ratio indicates potential DoS attack.
+  
+  - id: syn_ratio_low
+    type: ratio_threshold
+    category: protocol
+    description: "Abnormally low SYN ratio may indicate network issues"
+    numerator: syn_packets
+    denominator: total_packets
+    threshold: 0.01
+    operator: less_than
+    severity: low
+    enabled: false
+    notes: "Detects potential network configuration issues"
+  
+  # Behavioral anomaly detection
+  - id: packet_rate_spike
+    type: spike_detection
+    category: behavioral
+    description: "Packet rate spike detected"
+    metric: total_packets
+    baseline_multiplier: 1.5
+    window_seconds: 10
+    severity: medium
+    enabled: true
+    notes: |
+      Detects sudden spikes in packet rate compared to recent baseline.
+      May indicate:
+      - DDoS attack
+      - Scanning activity
+      - Application malfunction
+  
+  - id: execve_spike
+    type: spike_detection
+    category: behavioral
+    description: "Process creation spike detected"
+    metric: execve_count
+    baseline_multiplier: 10.0
+    window_seconds: 30
+    severity: high
+    enabled: false
+    notes: "Detects sudden bursts of process creation"
+  
+  - id: byte_rate_spike
+    type: spike_detection
+    category: behavioral
+    description: "Data transfer rate spike detected"
+    metric: total_bytes
+    baseline_multiplier: 5.0
+    window_seconds: 10
+    severity: low
+    enabled: false
+    notes: "Detects unusual data transfer patterns"
+
+# Global configuration
+config:
+  snapshot_buffer_size: 60  # Keep last 60 snapshots in memory
+  baseline_window_default: 10  # Default baseline window in seconds
+  alert_output: stdout  # stdout, file, or database
+  log_level: info  # debug, info, warning, error
