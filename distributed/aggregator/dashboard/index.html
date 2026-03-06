@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>zkNIDS — Zero-Knowledge Network Intrusion Detection</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0a0e17;
+    --bg-secondary: #111827;
+    --bg-card: #1a2235;
+    --bg-card-hover: #1e2942;
+    --bg-input: #0d1321;
+    --border: #1e2d45;
+    --border-active: #2563eb;
+    --text-primary: #e2e8f0;
+    --text-secondary: #8899b4;
+    --text-dim: #4a5e7a;
+    --accent: #3b82f6;
+    --accent-glow: rgba(59,130,246,0.15);
+    --green: #10b981;
+    --green-glow: rgba(16,185,129,0.15);
+    --red: #ef4444;
+    --red-glow: rgba(239,68,68,0.15);
+    --amber: #f59e0b;
+    --amber-glow: rgba(245,158,11,0.15);
+    --purple: #8b5cf6;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  
+  body {
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  
+  .fade-in { animation: fadeIn 0.3s ease-out; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  
+  @keyframes pulse-dot { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+  .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+  
+  @keyframes scan-line {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  
+  .glow-green { box-shadow: 0 0 12px var(--green-glow), inset 0 0 12px var(--green-glow); }
+  .glow-red { box-shadow: 0 0 12px var(--red-glow), inset 0 0 12px var(--red-glow); }
+  .glow-blue { box-shadow: 0 0 12px var(--accent-glow), inset 0 0 12px var(--accent-glow); }
+  
+  .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .btn:hover { background: var(--bg-card-hover); border-color: var(--text-dim); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 4px; font-size: 11px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .badge-critical { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+  .badge-high { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-medium { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+  .badge-low { background: rgba(107,114,128,0.15); color: #9ca3af; border: 1px solid rgba(107,114,128,0.3); }
+  .badge-verified { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+  .badge-pending { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-failed { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+  
+  input, select, textarea {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    width: 100%;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+  
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); border-bottom: 1px solid var(--border); }
+  td { padding: 10px 12px; border-bottom: 1px solid rgba(30,45,69,0.5); font-size: 13px; }
+  tr:hover td { background: rgba(30,45,69,0.3); }
+  tr { cursor: pointer; transition: background 0.1s; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ─── Config ──────────────────────────────────────────────
+const API = window.location.origin;
+const WS_URL = `ws://${window.location.host}/ws`;
+
+// ─── API Key Storage (session only, not persisted) ───────
+function getAdminKey() {
+  return window.__zknids_admin_key || '';
+}
+function setAdminKey(key) {
+  window.__zknids_admin_key = key;
+}
+
+// ─── API Helpers ─────────────────────────────────────────
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  const key = getAdminKey();
+  if (key) headers['X-API-Key'] = key;
+  const r = await fetch(`${API}${path}`, { ...opts, headers });
+  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+  return r.json();
+}
+
+// ─── Formatters ──────────────────────────────────────────
+function timeAgo(ts) {
+  if (!ts) return '—';
+  const d = (Date.now()/1000) - ts;
+  if (d < 5) return 'just now';
+  if (d < 60) return `${Math.floor(d)}s ago`;
+  if (d < 3600) return `${Math.floor(d/60)}m ago`;
+  if (d < 86400) return `${Math.floor(d/3600)}h ago`;
+  return `${Math.floor(d/86400)}d ago`;
+}
+
+function fmtTime(ts) {
+  if (!ts) return '—';
+  return new Date(ts * 1000).toLocaleTimeString('en-US', { hour12: false });
+}
+
+function fmtDate(ts) {
+  if (!ts) return '—';
+  return new Date(ts * 1000).toLocaleString('en-US', { 
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+  });
+}
+
+// ─── WebSocket Hook ──────────────────────────────────────
+function useWebSocket(onMessage) {
+  const wsRef = useRef(null);
+  const reconnectRef = useRef(null);
+
+  const connect = useCallback(() => {
+    try {
+      const ws = new WebSocket(WS_URL);
+      ws.onopen = () => console.log('WS connected');
+      ws.onmessage = (e) => {
+        try { onMessage(JSON.parse(e.data)); } catch(err) {}
+      };
+      ws.onclose = () => {
+        reconnectRef.current = setTimeout(connect, 3000);
+      };
+      ws.onerror = () => ws.close();
+      wsRef.current = ws;
+    } catch(e) {}
+  }, [onMessage]);
+
+  useEffect(() => {
+    connect();
+    const ping = setInterval(() => {
+      if (wsRef.current?.readyState === 1) wsRef.current.send('ping');
+    }, 15000);
+    return () => {
+      clearInterval(ping);
+      clearTimeout(reconnectRef.current);
+      wsRef.current?.close();
+    };
+  }, [connect]);
+}
+
+// ─── Severity Badge ──────────────────────────────────────
+function SevBadge({ severity }) {
+  const s = (severity || '').toLowerCase();
+  return <span className={`badge badge-${s}`}>{severity || '—'}</span>;
+}
+
+function ProofBadge({ status }) {
+  const s = (status || 'pending').toLowerCase();
+  const icons = { verified: '✓', pending: '⏳', generating: '⚡', failed: '✗' };
+  return <span className={`badge badge-${s === 'verified' ? 'verified' : s === 'failed' ? 'failed' : 'pending'}`}>
+    {icons[s] || '?'} {s}
+  </span>;
+}
+
+// ─── Stat Card ───────────────────────────────────────────
+function StatCard({ label, value, sub, color, icon }) {
+  return (
+    <div style={{
+      background: 'var(--bg-card)', border: '1px solid var(--border)',
+      borderRadius: 8, padding: '20px 24px', flex: 1, minWidth: 180,
+      borderTop: `2px solid ${color || 'var(--accent)'}`,
+    }}>
+      <div style={{ fontSize: 11, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+        {icon && <span style={{ marginRight: 6 }}>{icon}</span>}{label}
+      </div>
+      <div className="mono" style={{ fontSize: 28, fontWeight: 700, color: color || 'var(--text-primary)' }}>{value}</div>
+      {sub && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>{sub}</div>}
+    </div>
+  );
+}
+
+// ─── Bar Chart ───────────────────────────────────────────
+function BarChart({ data, color }) {
+  if (!data || !Object.keys(data).length) return <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>No data</div>;
+  const max = Math.max(...Object.values(data), 1);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {Object.entries(data).sort((a,b) => b[1]-a[1]).map(([k, v]) => (
+        <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="mono" style={{ width: 140, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k}</div>
+          <div style={{ flex: 1, height: 18, background: 'var(--bg-input)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ width: `${(v/max)*100}%`, height: '100%', background: color || 'var(--accent)', borderRadius: 3, transition: 'width 0.5s' }}/>
+          </div>
+          <div className="mono" style={{ width: 32, fontSize: 12, textAlign: 'right', color: 'var(--text-dim)' }}>{v}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Timeline Sparkline ──────────────────────────────────
+function Timeline({ data }) {
+  if (!data || !data.length) return <div style={{ color: 'var(--text-dim)', fontSize: 13, padding: '20px 0' }}>No activity in the last hour</div>;
+  const max = Math.max(...data.map(d => d.count), 1);
+  const buckets = new Array(60).fill(0);
+  data.forEach(d => { if (d.minute >= 0 && d.minute < 60) buckets[d.minute] = d.count; });
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', height: 48, gap: 1 }}>
+      {buckets.map((v, i) => (
+        <div key={i} style={{
+          flex: 1, background: v ? 'var(--accent)' : 'var(--bg-input)',
+          height: v ? `${Math.max(4, (v/max)*100)}%` : 2,
+          borderRadius: 1, opacity: v ? 1 : 0.3,
+          transition: 'height 0.3s',
+        }} title={`${v} alerts`}/>
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAGE 1: Live Overview
+// ═══════════════════════════════════════════════════════════
+function OverviewPage({ stats, hosts, alerts, onNav }) {
+  return (
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Top Stats */}
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+        <StatCard label="Monitored Hosts" value={stats.total_hosts || 0} sub={`${stats.online_hosts || 0} online`} color="var(--accent)" icon="◉" />
+        <StatCard label="Active Alerts" value={stats.total_alerts || 0} color="var(--amber)" icon="△" />
+        <StatCard label="Proofs Generated" value={(stats.proof_stats?.verified || 0) + (stats.proof_stats?.pending || 0)} sub={`${stats.proof_stats?.verified || 0} verified`} color="var(--green)" icon="◈" />
+        <StatCard label="Failed Proofs" value={stats.proof_stats?.failed || 0} color={stats.proof_stats?.failed ? 'var(--red)' : 'var(--text-dim)'} icon="⊘" />
+      </div>
+
+      {/* Host Cards */}
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Connected Hosts</div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {hosts.length === 0 && <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>No hosts registered yet</div>}
+          {hosts.map(h => (
+            <div key={h.host_id} onClick={() => onNav('host', h.host_id)}
+              style={{
+                background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8,
+                padding: 16, minWidth: 200, cursor: 'pointer', transition: 'all 0.15s',
+                borderLeft: `3px solid ${h.status === 'online' ? 'var(--green)' : 'var(--red)'}`,
+              }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: h.status === 'online' ? 'var(--green)' : 'var(--red)' }} className={h.status === 'online' ? 'pulse-dot' : ''} />
+                <span style={{ fontWeight: 600, fontSize: 14 }}>{h.hostname || h.host_id}{h.host_ip ? ` (${h.host_ip})` : ''}</span>
+              </div>
+              <div className="mono" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{h.host_ip || '—'}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>{h.alert_count || stats.host_counts?.[h.host_id] || 0} alerts · {timeAgo(h.last_heartbeat)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Timeline + Charts */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12 }}>Alert Timeline (Last Hour)</div>
+          <Timeline data={stats.timeline} />
+        </div>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12 }}>Severity Distribution</div>
+          <BarChart data={stats.severity_counts} color="var(--amber)" />
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12 }}>Invariant Hit Map</div>
+          <BarChart data={stats.invariant_counts} color="var(--purple)" />
+        </div>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12 }}>Category Breakdown</div>
+          <BarChart data={stats.category_counts} color="var(--green)" />
+        </div>
+      </div>
+
+      {/* Recent Alerts */}
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12 }}>Recent Alerts</div>
+        <table>
+          <thead><tr><th>Time</th><th>Host</th><th>Alert</th><th>Severity</th><th>Proof</th></tr></thead>
+          <tbody>
+            {alerts.slice(0, 8).map(a => (
+              <tr key={a.alert_id} onClick={() => onNav('alert', a.alert_id)}>
+                <td className="mono" style={{ fontSize: 12, color: 'var(--text-dim)' }}>{fmtTime(a.received_at)}</td>
+                <td style={{ fontSize: 13 }}>{a.hostname && a.hostname !== 'unknown' ? a.hostname : a.host_ip || a.host_id}</td>
+                <td>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{(a.invariant_id || '').replace(/_/g, ' ')}</div>
+                  <div className="mono" style={{ fontSize: 11, color: 'var(--text-dim)' }}>{a.observed_value} {'>'} {a.threshold}</div>
+                </td>
+                <td><SevBadge severity={a.severity} /></td>
+                <td><ProofBadge status={a.proof_status} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAGE 2: Alert Feed
+// ═══════════════════════════════════════════════════════════
+function AlertsPage({ alerts, onNav }) {
+  const [filter, setFilter] = useState({ severity: '', proof: '', search: '' });
+  
+  const filtered = alerts.filter(a => {
+    if (filter.severity && a.severity !== filter.severity) return false;
+    if (filter.proof && a.proof_status !== filter.proof) return false;
+    if (filter.search) {
+      const s = filter.search.toLowerCase();
+      return (a.invariant_id||'').toLowerCase().includes(s) || (a.hostname||'').toLowerCase().includes(s) || (a.host_ip||'').includes(s);
+    }
+    return true;
+  });
+
+  return (
+    <div className="fade-in">
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+        <input placeholder="Search alerts..." value={filter.search} onChange={e => setFilter({...filter, search: e.target.value})} style={{ maxWidth: 260 }} />
+        <select value={filter.severity} onChange={e => setFilter({...filter, severity: e.target.value})} style={{ width: 140 }}>
+          <option value="">All Severity</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <select value={filter.proof} onChange={e => setFilter({...filter, proof: e.target.value})} style={{ width: 140 }}>
+          <option value="">All Proofs</option>
+          <option value="verified">Verified</option>
+          <option value="pending">Pending</option>
+          <option value="failed">Failed</option>
+        </select>
+        <div style={{ flex: 1 }} />
+        <div className="mono" style={{ fontSize: 12, color: 'var(--text-dim)', alignSelf: 'center' }}>{filtered.length} alerts</div>
+      </div>
+
+      {/* Alert Table */}
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+        <table>
+          <thead><tr><th style={{width:40}}>#</th><th>Time</th><th>Host</th><th>Alert</th><th>Value</th><th>Severity</th><th>Proof</th></tr></thead>
+          <tbody>
+            {filtered.map((a, i) => (
+              <tr key={a.alert_id} onClick={() => onNav('alert', a.alert_id)}>
+                <td className="mono" style={{ fontSize: 11, color: 'var(--text-dim)' }}>{a.id || i+1}</td>
+                <td className="mono" style={{ fontSize: 12, color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>{fmtDate(a.received_at)}</td>
+                <td>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{a.hostname || a.host_id}</div>
+                  <div className="mono" style={{ fontSize: 11, color: 'var(--text-dim)' }}>{a.host_ip}</div>
+                </td>
+                <td>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{(a.invariant_id||'').replace(/_/g, ' ')}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>{a.description || a.circuit_template}</div>
+                </td>
+                <td className="mono" style={{ fontSize: 12 }}>
+                  <span style={{ color: 'var(--amber)' }}>{a.observed_value != null ? Number(a.observed_value).toFixed(2) : '—'}</span>
+                  <span style={{ color: 'var(--text-dim)' }}> / {a.threshold}</span>
+                </td>
+                <td><SevBadge severity={a.severity} /></td>
+                <td><ProofBadge status={a.proof_status} /></td>
+              </tr>
+            ))}
+            {filtered.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-dim)', padding: 40 }}>No alerts match filters</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAGE 3: Alert Detail
+// ═══════════════════════════════════════════════════════════
+function AlertDetailPage({ alertId, onNav }) {
+  const [alert, setAlert] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    api(`/api/alerts/${alertId}`).then(setAlert).catch(console.error).finally(() => setLoading(false));
+  }, [alertId]);
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-dim)' }}>Loading...</div>;
+  if (!alert) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--red)' }}>Alert not found</div>;
+
+  const full = alert.full_alert || {};
+  const obs = full.observation || {};
+  const dash = full.dashboard_fields || {};
+  const prov = full.provenance || {};
+
+  return (
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button className="btn btn-sm" onClick={() => onNav('alerts')}>← Back</button>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>{(alert.invariant_id||'').replace(/_/g, ' ')}</div>
+          <div className="mono" style={{ fontSize: 12, color: 'var(--text-dim)' }}>{alert.alert_id}</div>
+        </div>
+        <SevBadge severity={alert.severity} />
+        <ProofBadge status={alert.proof_status} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        {/* Detection Details */}
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--accent)' }}>Detection Details</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '10px 12px', fontSize: 13 }}>
+            <span style={{ color: 'var(--text-dim)' }}>Host</span>
+            <span>{dash.hostname || alert.hostname || '—'} <span className="mono" style={{ color: 'var(--text-dim)' }}>({dash.host_ip || alert.host_ip || '—'})</span></span>
+            <span style={{ color: 'var(--text-dim)' }}>Time</span>
+            <span className="mono">{fmtDate(alert.received_at)}</span>
+            <span style={{ color: 'var(--text-dim)' }}>Category</span>
+            <span>{alert.category || '—'}</span>
+            <span style={{ color: 'var(--text-dim)' }}>Circuit</span>
+            <span className="mono">{alert.circuit_template || '—'}</span>
+            <span style={{ color: 'var(--text-dim)' }}>Observed Value</span>
+            <span className="mono" style={{ color: 'var(--amber)' }}>{obs.observed_value != null ? obs.observed_value : alert.observed_value}</span>
+            <span style={{ color: 'var(--text-dim)' }}>Threshold</span>
+            <span className="mono">{obs.threshold || alert.threshold} ({obs.threshold_operator || alert.threshold_operator || '>'})</span>
+            <span style={{ color: 'var(--text-dim)' }}>Interface</span>
+            <span className="mono">{dash.interface || alert.interface || '—'}</span>
+            {dash.total_packets != null && <>
+              <span style={{ color: 'var(--text-dim)' }}>Total Packets</span>
+              <span className="mono">{Number(dash.total_packets).toLocaleString()}</span>
+            </>}
+            {dash.syn_packets != null && <>
+              <span style={{ color: 'var(--text-dim)' }}>SYN Packets</span>
+              <span className="mono">{Number(dash.syn_packets).toLocaleString()}</span>
+            </>}
+            {dash.packet_rate != null && <>
+              <span style={{ color: 'var(--text-dim)' }}>Packet Rate</span>
+              <span className="mono">{dash.packet_rate}/s</span>
+            </>}
+            {dash.flow_count != null && <>
+              <span style={{ color: 'var(--text-dim)' }}>Flow Count</span>
+              <span className="mono">{dash.flow_count}</span>
+            </>}
+          </div>
+        </div>
+
+        {/* ZK Proof Status */}
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: 20, borderTop: `2px solid ${alert.proof_status === 'verified' ? 'var(--green)' : 'var(--amber)'}` }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: alert.proof_status === 'verified' ? 'var(--green)' : 'var(--amber)' }}>ZK Proof Status</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '10px 12px', fontSize: 13 }}>
+            <span style={{ color: 'var(--text-dim)' }}>Status</span>
+            <ProofBadge status={alert.proof_status} />
+            <span style={{ color: 'var(--text-dim)' }}>Proof ID</span>
+            <span className="mono" style={{ fontSize: 11, wordBreak: 'break-all' }}>{alert.proof_id || '—'}</span>
+            <span style={{ color: 'var(--text-dim)' }}>Circuit</span>
+            <span className="mono">{alert.proof_circuit_template || alert.circuit_template || '—'}</span>
+            <span style={{ color: 'var(--text-dim)' }}>Generation Time</span>
+            <span className="mono">{alert.proof_generation_time_ms ? `${alert.proof_generation_time_ms}ms` : '—'}</span>
+            <span style={{ color: 'var(--text-dim)' }}>Prover Version</span>
+            <span className="mono">{alert.proof_prover_version || '—'}</span>
+          </div>
+
+          {alert.proof_status === 'verified' && (
+            <div style={{ marginTop: 20, padding: 12, background: 'var(--bg-input)', borderRadius: 6, border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--green)', marginBottom: 8 }}>Public Inputs (visible to verifier)</div>
+              <div className="mono" style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                threshold: {alert.threshold}<br/>
+                result: true<br/>
+                circuit: {alert.proof_circuit_template || alert.circuit_template}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-dim)', marginTop: 12, marginBottom: 4 }}>Private (hidden in proof)</div>
+              <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>actual ratio, packet counts, IPs, traffic data</div>
+            </div>
+          )}
+
+          {alert.proof_blob && (
+            <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+              <button className="btn btn-sm" onClick={() => {
+                const blob = new Blob([JSON.stringify({ proof_id: alert.proof_id, alert_id: alert.alert_id, proof_blob: alert.proof_blob }, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = `proof_${alert.proof_id}.json`; a.click();
+              }}>⬇ Download Proof</button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Provenance */}
+      {(prov.phase1_detector_hash || prov.phase2_detector_hash) && (
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--text-secondary)' }}>Provenance Chain</div>
+          <div className="mono" style={{ fontSize: 12, display: 'grid', gridTemplateColumns: '180px 1fr', gap: '8px 12px' }}>
+            <span style={{ color: 'var(--text-dim)' }}>Phase 1 Detector</span><span>{prov.phase1_detector_hash || '—'}</span>
+            <span style={{ color: 'var(--text-dim)' }}>Phase 2 Detector</span><span>{prov.phase2_detector_hash || '—'}</span>
+            <span style={{ color: 'var(--text-dim)' }}>Flow Hash</span><span>{prov.flow_hash || '—'}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAGE 4: Host Details
+// ═══════════════════════════════════════════════════════════
+function HostDetailPage({ hostId, hosts, alerts, stats, onNav }) {
+  const host = hosts.find(h => h.host_id === hostId);
+  const hostAlerts = alerts.filter(a => a.host_id === hostId);
+
+  if (!host) return <div style={{ padding: 40, color: 'var(--text-dim)' }}>Host not found</div>;
+
+  // Invariant hit map for this host
+  const invMap = {};
+  hostAlerts.forEach(a => { invMap[a.invariant_id] = (invMap[a.invariant_id] || 0) + 1; });
+
+  const proofOk = hostAlerts.filter(a => a.proof_status === 'verified').length;
+  const uptime = host.first_seen ? `${Math.floor((Date.now()/1000 - host.first_seen) / 3600)}h ${Math.floor(((Date.now()/1000 - host.first_seen) % 3600) / 60)}m` : '—';
+
+  return (
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button className="btn btn-sm" onClick={() => onNav('overview')}>← Back</button>
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: host.status === 'online' ? 'var(--green)' : 'var(--red)' }} className={host.status === 'online' ? 'pulse-dot' : ''} />
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>{host.hostname || host.host_id}</div>
+          <div className="mono" style={{ fontSize: 12, color: 'var(--text-dim)' }}>{host.host_ip}</div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+        <StatCard label="Total Alerts" value={hostAlerts.length} color="var(--amber)" />
+        <StatCard label="Proofs Verified" value={proofOk} sub={`${hostAlerts.length ? Math.round(proofOk/hostAlerts.length*100) : 0}%`} color="var(--green)" />
+        <StatCard label="Uptime" value={uptime} color="var(--accent)" />
+        <StatCard label="Last Seen" value={timeAgo(host.last_heartbeat)} color="var(--text-secondary)" />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 16 }}>Host Info</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px 12px', fontSize: 13 }}>
+            <span style={{ color: 'var(--text-dim)' }}>Host ID</span><span className="mono">{host.host_id}</span>
+            <span style={{ color: 'var(--text-dim)' }}>Interface</span><span className="mono">{host.interface || '—'}</span>
+            <span style={{ color: 'var(--text-dim)' }}>Agent</span><span className="mono">{host.agent_version || '—'}</span>
+            <span style={{ color: 'var(--text-dim)' }}>Phase 1</span><span className="mono">{host.phase1_version || '—'}</span>
+            <span style={{ color: 'var(--text-dim)' }}>Phase 2</span><span className="mono">{host.phase2_version || '—'}</span>
+          </div>
+        </div>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 16 }}>Invariant Hit Map</div>
+          <BarChart data={invMap} color="var(--purple)" />
+        </div>
+      </div>
+
+      {/* Host Alert History */}
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12 }}>Alert History</div>
+        <table>
+          <thead><tr><th>Time</th><th>Alert</th><th>Value</th><th>Severity</th><th>Proof</th></tr></thead>
+          <tbody>
+            {hostAlerts.slice(0, 20).map(a => (
+              <tr key={a.alert_id} onClick={() => onNav('alert', a.alert_id)}>
+                <td className="mono" style={{ fontSize: 12, color: 'var(--text-dim)' }}>{fmtDate(a.received_at)}</td>
+                <td style={{ fontWeight: 500 }}>{(a.invariant_id||'').replace(/_/g, ' ')}</td>
+                <td className="mono" style={{ fontSize: 12 }}>{a.observed_value != null ? Number(a.observed_value).toFixed(2) : '—'} / {a.threshold}</td>
+                <td><SevBadge severity={a.severity} /></td>
+                <td><ProofBadge status={a.proof_status} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAGE 5: Proof Management
+// ═══════════════════════════════════════════════════════════
+function ProofsPage({ alerts }) {
+  const proven = alerts.filter(a => a.proof_status === 'verified');
+  const pending = alerts.filter(a => a.proof_status === 'pending');
+  const failed = alerts.filter(a => a.proof_status === 'failed');
+
+  const avgGen = proven.length ? Math.round(proven.reduce((s,a) => s + (a.proof_generation_time_ms||0), 0) / proven.length) : 0;
+
+  function exportBundle(subset) {
+    const bundle = {
+      exported_at: new Date().toISOString(),
+      total_proofs: subset.length,
+      privacy_notice: 'This bundle contains ZERO private data: no IPs, no packet counts, no traffic patterns. Only thresholds, results, and proof blobs.',
+      proofs: subset.map(a => ({
+        proof_id: a.proof_id, alert_id: a.alert_id,
+        circuit_template: a.proof_circuit_template || a.circuit_template,
+        proof_status: a.proof_status,
+        generation_time_ms: a.proof_generation_time_ms,
+      }))
+    };
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const el = document.createElement('a'); el.href = url; el.download = `zknids_proof_bundle_${Date.now()}.json`; el.click();
+  }
+
+  return (
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+        <StatCard label="Total Generated" value={proven.length + pending.length + failed.length} color="var(--accent)" />
+        <StatCard label="Verified" value={proven.length} icon="✓" color="var(--green)" />
+        <StatCard label="Pending" value={pending.length} icon="⏳" color="var(--amber)" />
+        <StatCard label="Failed" value={failed.length} icon="✗" color="var(--red)" />
+        <StatCard label="Avg Gen Time" value={`${avgGen}ms`} color="var(--text-secondary)" />
+      </div>
+
+      {/* Export Bundle */}
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: 24 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Proof Bundle (for external sharing)</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>Bundle contains NO private data:</div>
+            <div style={{ fontSize: 12, lineHeight: 2 }}>
+              <div style={{ color: 'var(--green)' }}>✓ No IP addresses</div>
+              <div style={{ color: 'var(--green)' }}>✓ No packet counts</div>
+              <div style={{ color: 'var(--green)' }}>✓ No traffic patterns</div>
+              <div style={{ color: 'var(--text-dim)' }}>Only: thresholds, results, proof blobs</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, justifyContent: 'center' }}>
+            <button className="btn btn-primary" onClick={() => exportBundle(proven)}>⬇ Export All Verified ({proven.length})</button>
+            <button className="btn" onClick={() => exportBundle([...proven, ...pending, ...failed])}>⬇ Export Everything ({alerts.length})</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Proof List */}
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+        <table>
+          <thead><tr><th>Proof ID</th><th>Alert</th><th>Circuit</th><th>Status</th><th>Gen Time</th><th>Prover</th></tr></thead>
+          <tbody>
+            {alerts.filter(a => a.proof_id).map(a => (
+              <tr key={a.proof_id}>
+                <td className="mono" style={{ fontSize: 11 }}>{(a.proof_id||'').substring(0, 8)}...</td>
+                <td style={{ fontSize: 13 }}>{(a.invariant_id||'').replace(/_/g, ' ')}</td>
+                <td className="mono" style={{ fontSize: 12 }}>{a.proof_circuit_template || a.circuit_template || '—'}</td>
+                <td><ProofBadge status={a.proof_status} /></td>
+                <td className="mono" style={{ fontSize: 12 }}>{a.proof_generation_time_ms ? `${a.proof_generation_time_ms}ms` : '—'}</td>
+                <td className="mono" style={{ fontSize: 11, color: 'var(--text-dim)' }}>{a.proof_prover_version || '—'}</td>
+              </tr>
+            ))}
+            {alerts.filter(a => a.proof_id).length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-dim)', padding: 40 }}>No proofs generated yet</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAGE 6: Invariant Editor (Admin)
+// ═══════════════════════════════════════════════════════════
+function InvariantsPage() {
+  const [invariants, setInvariants] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+  const [adminKey, setAdminKey] = useState(getAdminKey());
+  const [showKeyInput, setShowKeyInput] = useState(false);
+
+  // Fetch invariants from server on mount
+  useEffect(() => {
+    api('/api/invariants').then(data => {
+      const mapped = data.map(inv => ({
+        id: inv.id,
+        type: inv.type,
+        category: inv.category,
+        circuit: inv.circuit_template,
+        threshold: inv.threshold,
+        operator: inv.threshold_operator,
+        severity: inv.severity,
+        enabled: inv.enabled === 1 || inv.enabled === true,
+        description: inv.description,
+      }));
+      setInvariants(mapped);
+    }).catch(() => setError('Failed to load invariants'));
+  }, [saved]);
+
+  function handleKeySet() {
+    setAdminKey(window.__zknids_key_input || '');
+    setAdminKey(window.__zknids_key_input || '');
+    setShowKeyInput(false);
+  }
+
+  async function handleSave(inv) {
+    setError('');
+    const key = getAdminKey();
+    if (!key) {
+      setError('Admin API key required. Click "Set Admin Key" first.');
+      return;
+    }
+    try {
+      await api(`/api/invariants/${inv.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          threshold: parseFloat(inv.threshold),
+          threshold_operator: inv.operator,
+          severity: inv.severity,
+          description: inv.description,
+          enabled: inv.enabled,
+        }),
+      });
+      setInvariants(prev => prev.map(i => i.id === inv.id ? inv : i));
+      setEditing(null);
+      setSaved(true);
+      setError('');
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) {
+      setError(`Save failed: ${e.message}. Check admin API key.`);
+    }
+  }
+
+  return (
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>Invariant Configuration</div>
+          <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>Edit detection thresholds and parameters. Changes apply to all agents on next sync.</div>
+        </div>
+        {saved && <span style={{ color: 'var(--green)', fontSize: 13, fontWeight: 500 }}>✓ Saved to server</span>}
+        <button className="btn btn-sm" onClick={() => setShowKeyInput(!showKeyInput)}
+          style={{ background: adminKey ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', color: adminKey ? 'var(--green)' : 'var(--red)', border: `1px solid ${adminKey ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}` }}>
+          {adminKey ? '🔑 Key Set' : '🔒 Set Admin Key'}
+        </button>
+      </div>
+
+      {showKeyInput && (
+        <div style={{ display: 'flex', gap: 8, padding: 12, background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border)', alignItems: 'center' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Admin Key:</span>
+          <input type="password" placeholder="Paste admin API key"
+            onChange={(e) => { window.__zknids_key_input = e.target.value; }}
+            style={{ flex: 1, background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 4, padding: '6px 10px', color: 'var(--text)', fontSize: 13 }} />
+          <button className="btn btn-sm btn-primary" onClick={() => {
+            setAdminKey(window.__zknids_key_input || '');
+            setAdminKey(window.__zknids_key_input || '');
+            window.__zknids_admin_key = window.__zknids_key_input || '';
+            setShowKeyInput(false);
+          }}>Apply</button>
+        </div>
+      )}
+
+      {error && <div style={{ padding: 10, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, color: 'var(--red)', fontSize: 13 }}>{error}</div>}
+
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+        <table>
+          <thead><tr><th>Invariant</th><th>Type</th><th>Circuit</th><th>Threshold</th><th>Severity</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            {invariants.map(inv => (
+              <tr key={inv.id} style={{ cursor: 'default' }}>
+                <td>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{inv.id.replace(/_/g, ' ')}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>{inv.description}</div>
+                </td>
+                <td><span className="badge" style={{ background: 'rgba(139,92,246,0.15)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.3)' }}>{inv.type}</span></td>
+                <td className="mono" style={{ fontSize: 12 }}>{inv.circuit}</td>
+                <td className="mono" style={{ fontSize: 13, color: 'var(--amber)' }}>{inv.threshold}</td>
+                <td><SevBadge severity={inv.severity} /></td>
+                <td>
+                  <span style={{ color: inv.enabled ? 'var(--green)' : 'var(--red)', fontSize: 12, fontWeight: 600 }}>
+                    {inv.enabled ? '● Active' : '○ Disabled'}
+                  </span>
+                </td>
+                <td>
+                  <button className="btn btn-sm" onClick={() => setEditing(inv)}>Edit</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Edit Modal */}
+      {editing && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+          onClick={(e) => { if (e.target === e.currentTarget) setEditing(null); }}>
+          <EditInvariantForm inv={editing} onSave={handleSave} onCancel={() => setEditing(null)} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EditInvariantForm({ inv, onSave, onCancel }) {
+  const [form, setForm] = useState({ ...inv });
+  const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
+
+  return (
+    <div className="fade-in" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 12, padding: 28, width: 480, maxHeight: '80vh', overflow: 'auto' }}>
+      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Edit: {inv.id.replace(/_/g, ' ')}</div>
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div>
+          <label style={{ fontSize: 12, color: 'var(--text-dim)', display: 'block', marginBottom: 4 }}>Description</label>
+          <input value={form.description} onChange={e => set('description', e.target.value)} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, color: 'var(--text-dim)', display: 'block', marginBottom: 4 }}>Threshold</label>
+            <input type="number" step="any" value={form.threshold} onChange={e => set('threshold', parseFloat(e.target.value) || 0)} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: 'var(--text-dim)', display: 'block', marginBottom: 4 }}>Operator</label>
+            <select value={form.operator} onChange={e => set('operator', e.target.value)}>
+              <option value="greater_than">Greater Than</option>
+              <option value="less_than">Less Than</option>
+              <option value="equals">Equals</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, color: 'var(--text-dim)', display: 'block', marginBottom: 4 }}>Severity</label>
+            <select value={form.severity} onChange={e => set('severity', e.target.value)}>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: 'var(--text-dim)', display: 'block', marginBottom: 4 }}>Status</label>
+            <select value={form.enabled ? 'true' : 'false'} onChange={e => set('enabled', e.target.value === 'true')}>
+              <option value="true">Active</option>
+              <option value="false">Disabled</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, color: 'var(--text-dim)', display: 'block', marginBottom: 4 }}>Type</label>
+            <input value={form.type} disabled style={{ opacity: 0.5 }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: 'var(--text-dim)', display: 'block', marginBottom: 4 }}>Circuit Template</label>
+            <input value={form.circuit} disabled style={{ opacity: 0.5 }} />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 24, justifyContent: 'flex-end' }}>
+        <button className="btn" onClick={onCancel}>Cancel</button>
+        <button className="btn btn-primary" onClick={() => onSave(form)}>Save Changes</button>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN APP
+// ═══════════════════════════════════════════════════════════
+function App() {
+  const [page, setPage] = useState('overview');
+  const [pageArg, setPageArg] = useState(null);
+  const [stats, setStats] = useState({});
+  const [hosts, setHosts] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [wsStatus, setWsStatus] = useState('connecting');
+
+  // Polling
+  useEffect(() => {
+    const load = () => {
+      api('/api/stats').then(setStats).catch(() => {});
+      api('/api/hosts').then(setHosts).catch(() => {});
+      api('/api/alerts?limit=200').then(setAlerts).catch(() => {});
+    };
+    load();
+    const iv = setInterval(load, 5000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // WebSocket
+  const handleWs = useCallback((msg) => {
+    setWsStatus('connected');
+    if (msg.type === 'new_alert') {
+      setAlerts(prev => [msg, ...prev].slice(0, 200));
+      api('/api/stats').then(setStats).catch(() => {});
+    } else if (msg.type === 'proof_update') {
+      setAlerts(prev => prev.map(a => a.alert_id === msg.alert_id ? { ...a, proof_status: msg.proof_status, proof_id: msg.proof_id } : a));
+      api('/api/stats').then(setStats).catch(() => {});
+    }
+  }, []);
+  useWebSocket(handleWs);
+
+  function onNav(pg, arg) {
+    setPage(pg);
+    setPageArg(arg || null);
+  }
+
+  const navItems = [
+    { id: 'overview', label: 'Overview', icon: '◉' },
+    { id: 'alerts', label: 'Alerts', icon: '△' },
+    { id: 'proofs', label: 'Proofs', icon: '◈' },
+    { id: 'invariants', label: 'Invariants', icon: '⚙' },
+  ];
+
+  return (
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Sidebar */}
+      <div style={{
+        width: 220, background: 'var(--bg-secondary)', borderRight: '1px solid var(--border)',
+        display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, bottom: 0, zIndex: 100,
+      }}>
+        {/* Logo */}
+        <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 6,
+              background: 'linear-gradient(135deg, var(--accent), var(--purple))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 14, fontWeight: 700, color: '#fff',
+            }}>zk</div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-0.3px' }}>zkNIDS</div>
+              <div style={{ fontSize: 10, color: 'var(--text-dim)', letterSpacing: '0.5px' }}>INTRUSION DETECTION</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Nav */}
+        <div style={{ flex: 1, padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {navItems.map(n => (
+            <div key={n.id} onClick={() => onNav(n.id)}
+              style={{
+                padding: '10px 12px', borderRadius: 6, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 10,
+                background: page === n.id ? 'var(--accent-glow)' : 'transparent',
+                borderLeft: page === n.id ? '2px solid var(--accent)' : '2px solid transparent',
+                color: page === n.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+                fontSize: 13, fontWeight: page === n.id ? 600 : 400,
+                transition: 'all 0.1s',
+              }}>
+              <span style={{ fontSize: 14, width: 20, textAlign: 'center' }}>{n.icon}</span>
+              {n.label}
+            </div>
+          ))}
+        </div>
+
+        {/* Status */}
+        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', fontSize: 11 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-dim)' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: wsStatus === 'connected' ? 'var(--green)' : 'var(--amber)' }} className="pulse-dot" />
+            {wsStatus === 'connected' ? 'Live' : 'Connecting...'}
+          </div>
+          <div className="mono" style={{ color: 'var(--text-dim)', marginTop: 4, fontSize: 10 }}>PLONK+IPA · Trustless</div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div style={{ flex: 1, marginLeft: 220, padding: '24px 32px', maxWidth: 1200 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 20, fontWeight: 700 }}>
+              {page === 'overview' && 'Live Overview'}
+              {page === 'alerts' && 'Alert Feed'}
+              {page === 'alert' && 'Alert Detail'}
+              {page === 'host' && 'Host Details'}
+              {page === 'proofs' && 'Proof Management'}
+              {page === 'invariants' && 'Invariant Editor'}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)' }} className="pulse-dot" />
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Live</span>
+          </div>
+        </div>
+
+        {/* Page Content */}
+        {page === 'overview' && <OverviewPage stats={stats} hosts={hosts} alerts={alerts} onNav={onNav} />}
+        {page === 'alerts' && <AlertsPage alerts={alerts} onNav={onNav} />}
+        {page === 'alert' && <AlertDetailPage alertId={pageArg} onNav={onNav} />}
+        {page === 'host' && <HostDetailPage hostId={pageArg} hosts={hosts} alerts={alerts} stats={stats} onNav={onNav} />}
+        {page === 'proofs' && <ProofsPage alerts={alerts} />}
+        {page === 'invariants' && <InvariantsPage />}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>
