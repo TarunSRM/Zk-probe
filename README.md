@@ -273,4 +273,4 @@ PLONK+IPA eliminates trusted setup entirely while maintaining practical proof si
 
 ## License
 
-Academic project — Master of Science in Computer Science thesis.
+Academic project — Master of Technology Computer Science.
