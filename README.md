@@ -263,9 +263,9 @@ PLONK+IPA eliminates trusted setup entirely while maintaining practical proof si
 
 **Fixed-point arithmetic in circuits:** All ZK circuits use 10^6 precision integer math to avoid floating-point non-determinism.
 
-**ProofBundle format:** Each proof is self-contained — embeds circuit parameters (base64). The verifier reconstructs VK deterministically. No key files needed.
+**ProofBundle format:** Each proof is self-contained — embeds circuit parameters (base64). The verifier reconstructs ZK deterministically. No key files needed.
 
-**hostname+IP for host_id:** QEMU VMs change MAC on reboot. Static IPs are stable identifiers in the GNS3 topology.
+**hostname+IP for host_id:** VMs change MAC on reboot. Static IPs are stable identifiers in the virtualization environment.
 
 **Pipeline reads interface from agent.conf:** Single source of truth. No hardcoded interface names in systemd services.
 
